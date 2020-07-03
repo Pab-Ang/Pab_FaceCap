@@ -1,10 +1,12 @@
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 # Use pandas to read CSV and save to DataFrame
 # Drop unnecesary rows like Format, HexDecLabel and PositionLabel rows
-markersDF = pd.read_csv('../Data/alzar cejas1.csv', skiprows=[0,1,2,4,5,6])
+path_toData = Path.cwd() / 'Data' / 'Jun26_2020_Sess' /'alzar cejas1.csv'
+markersDF = pd.read_csv(str(path_toData.resolve()), skiprows=[0,1,2,4,5,6])
 
 # Rename Frame and Time header labels as they are read as Unnamed
 markersDF.rename({"Unnamed: 0":"Frame"}, axis="columns", inplace=True)
