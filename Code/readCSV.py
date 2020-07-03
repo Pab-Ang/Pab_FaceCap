@@ -8,7 +8,7 @@ sessionFilePath = input("Path to file from /Data:")
 
 # Use pandas to read CSV and save to DataFrame
 # Drop unnecesary rows like Format, HexDecLabel and PositionLabel rows
-path_toData = Path('readCSV.py')/ '..' / '..' / 'Data' / sessionFilePath
+path_toData = Path('readCSV.py').parent.parent/ 'Data' / sessionFilePath
 markersDF = pd.read_csv(path_toData.resolve(), skiprows=[0,1,2,4,5,6])
 
 # Rename Frame and Time header labels as they are read as Unnamed
