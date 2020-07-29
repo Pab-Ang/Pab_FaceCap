@@ -20,6 +20,7 @@ dist = np.linalg.norm(point1 - point2)
 
 # ------------------------------~CODE TO PLOT DATA~-------------------------------------
 ax = plt.axes(projection='3d')
+
 # Data in X Dim
 xdata = np.array(preMarkerDict['marker1'][:,0])
 for i in range(2, preMarkerCount+1):
@@ -51,4 +52,17 @@ ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_zlabel('z')
 # Z+ pointing into screen | X- pointing to right screen border
+plt.show()
+
+# 2D plot of the first frame data
+minX = np.amin(xfdata)
+minY = np.amin(yfdata)
+maxX = np.amax(xfdata)
+maxY = np.amax(yfdata)
+faceimg = plt.imread("./Code/Layout14.png")
+
+plt.scatter(xfdata, yfdata, cmap='plasma')
+plt.imshow(faceimg, zorder=0, extent=[-0.30, -0.09, 0.18, 0.40])
+plt.xlabel('X')
+plt.ylabel('Y')
 plt.show()
