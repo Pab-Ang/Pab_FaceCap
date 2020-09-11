@@ -52,6 +52,8 @@ def LabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
             myEntry = Entry(popWin)
             myEntry.grid(row=y, column=x, pady=20, padx=5)
             entryList.append(myEntry)
+
+            entryCounter+=1
       
       passListBtn = Button(popWin, text='Set Labels and Continue', command=lambda: 
          Fn.ListToStringVar(listOfEntries= entryList, passStringVar= StringVarToPass)
