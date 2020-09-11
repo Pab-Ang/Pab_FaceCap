@@ -1,4 +1,5 @@
 from pathlib import Path
+import string
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -55,7 +56,7 @@ def PrepareData(sessionFilePath):
 
 # Function to plot in 2D the first frame of FaceCap Data with a reference layout image
 # markerDict in format ['markerN':((X1,Y1,Z1),(X2,Y2,Z2),...), 'markerN+1':((X1,Y1,Z1),(X2,Y2,Z2),...)]
-def plotInitialLayout(dataFilePath, layoutPath):
+def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int):
 
 	preMarkerDict = PrepareData(Path(dataFilePath))
 	# print('\n Marker Arrays')    
@@ -64,6 +65,10 @@ def plotInitialLayout(dataFilePath, layoutPath):
 	#    print(preMarkerDict[key])
 
 	preMarkerCount = len(preMarkerDict.keys())
+
+	if(preMarkerCount < usrLabelCount):
+		NotEnoughMarkerData()
+		return None
 
 	# First frame Data in X Dim
 	xfdata = np.array((preMarkerDict['marker1'][0,0], preMarkerDict['marker2'][0,0]))
@@ -124,8 +129,8 @@ def plotInitialLayout(dataFilePath, layoutPath):
 
 	plt.show()
 
-# function to select file on button press, wintitle is a Str and winfiletype is a tuple on format ("Title", "*.extension"),("Title2", "*.extension2")
-def file_selection(filenameVar, wintitle, winfiletype):
+# Function to select file on button press, wintitle is a Str and winfiletype is a tuple on format ("Title", "*.extension"),("Title2", "*.extension2")
+def File_selection(filenameVar: StringVar, wintitle: str, winfiletype):
 	filename =  filedialog.askopenfilename(initialdir=Path(), title=wintitle, filetypes=winfiletype)
 	try:
 		print("Selected:", filename)
@@ -135,3 +140,34 @@ def file_selection(filenameVar, wintitle, winfiletype):
 
 def LabelFirstFrame():
 	pass
+
+# Function to transform a list of TKinter entries to a StringVar of comma separated strings
+def ListToStringVar(listOfEntries: list, passStringVar: StringVar):
+	stringList=[]
+
+	for entry in listOfEntries:
+		stringList.append(str(entry.get()))
+	
+	stringComma = ','.join(stringList)
+	# to modify external variable in TKinter
+	passStringVar.set(stringComma)
+
+# Function to pass comma separated string to a list of strings
+def CsStringToStringList(commaSepString: string):
+	return commaSepString.split(",")
+
+def StringListToNewLineString(stringList: list):
+	nlString = ''
+
+	for x in stringList:
+		nlString = nlString + str(x) + '\n'
+	
+	return nlString
+
+def NotEnoughMarkerData():
+	warningWin = Toplevel()
+	warningWin.title("WARNING!")
+
+	myLabel = Label(warningWin, text="MARKER COUNT INSUFFICENT \n CHECK DATA FILE AND/OR LABEL COUNT")
+	myLabel.pack()
+	return None
