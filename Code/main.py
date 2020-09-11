@@ -42,7 +42,7 @@ def LabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
    else:
       entryCounter=0
       winColumnCount = int(3)
-      winRowCount = int(usrLabelCount/winColumnCount)
+      winRowCount = int(np.ceil(usrLabelCount/winColumnCount))
       #Row Entry creation loop
       for y in range(winRowCount):
          #Column Entry creation loop
