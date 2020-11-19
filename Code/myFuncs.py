@@ -1,11 +1,11 @@
 from pathlib import Path
-import string
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from tkinter import *
 from tkinter import filedialog
+from hungarian_algorithm import algorithm
 
 #FUNCTIONS AND CLASSES
 
@@ -15,6 +15,7 @@ def PrepareData(sessionFilePath):
 	# Drop unnecesary rows like Format, HexDecLabel and PositionLabel rows
 	path_toData = Path(sessionFilePath)
 	markersDF = pd.read_csv(path_toData.resolve(), skiprows=[0,1,2,4,5,6])
+	# print(markersDF)
 
 	# Rename Frame and Time header labels as they are read as Unnamed
 	markersDF.rename({"Unnamed: 0":"Frame"}, axis="columns", inplace=True)
@@ -35,7 +36,7 @@ def PrepareData(sessionFilePath):
 	# Create Frame numpy Array
 	#FrameArray = markersDF.iloc[:, 0].to_numpy(copy=True)
 
-	# Create a dict to store marker arrays
+	# Create a Dict to store marker arrays
 	markerDict ={}
 	for i in range (1,FullMarkerCount+1):
 		markerDict['marker{}'.format(i)] = np.empty
@@ -56,7 +57,9 @@ def PrepareData(sessionFilePath):
 
 # Function to plot in 2D the first frame of FaceCap Data with a reference layout image
 # markerDict in format ['markerN':((X1,Y1,Z1),(X2,Y2,Z2),...), 'markerN+1':((X1,Y1,Z1),(X2,Y2,Z2),...)]
-def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int):
+def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, listOfLabels: list = None, listForCoords: list =None):
+
+	DisplayLabelsWindow(labelsList= listOfLabels, labelCount=usrLabelCount)
 
 	preMarkerDict = PrepareData(Path(dataFilePath))
 	# print('\n Marker Arrays')    
@@ -72,30 +75,31 @@ def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int):
 
 	# First frame Data in X Dim
 	xfdata = np.array((preMarkerDict['marker1'][0,0], preMarkerDict['marker2'][0,0]))
-	for i in range(3, preMarkerCount+1):
+	for i in range(3, usrLabelCount+1):
    		xfdata = np.concatenate(( xfdata,[preMarkerDict['marker{}'.format(i)][0,0]]),axis=0)
 	#First frame Data in Y Dim
 	yfdata = np.array((preMarkerDict['marker1'][0,1], preMarkerDict['marker2'][0,1]))
-	for i in range(3, preMarkerCount+1):
+	for i in range(3, usrLabelCount+1):
 		yfdata = np.concatenate(( yfdata,[preMarkerDict['marker{}'.format(i)][0,1]]),axis=0)
 	#First Frame Data in Z Dim
 	zfdata = np.array((preMarkerDict['marker1'][0,2], preMarkerDict['marker2'][0,2]))
-	for i in range(3, preMarkerCount+1):
+	for i in range(3, usrLabelCount+1):
 	   zfdata = np.concatenate(( zfdata,[preMarkerDict['marker{}'.format(i)][0,2]]),axis=0)
 
+	print("First X Data: \n", xfdata, "\n \n", "First Y Data: \n", yfdata)
 	# 2D plot of the first frame data
 	minX = np.amin(xfdata)
 	minY = np.amin(yfdata)
 	maxX = np.amax(xfdata)
 	maxY = np.amax(yfdata)
-	print(minX, maxX, minY, maxY)
+	print("Min X | Max X | Min Y | Max Y \n" , minX, maxX, minY, maxY)
 	# Layout image for reference
 	faceimg = plt.imread(Path(layoutPath))
 
 	#creating subplots to use slider widgets on window
 	fig, ax = plt.subplots()
 	plt.subplots_adjust(left=0.1, bottom=0.35)
-	plotFigure = plt.scatter(xfdata, yfdata, cmap='plasma')
+	plotFigure = plt.scatter(xfdata, yfdata, cmap = 'plasma', picker = usrLabelCount)
 	# extent in data units in order imshow(img, zorder=0, extent=[left, right, bottom, top])
 	# Default testing values [-0.30, -0.09, 0.18, 0.40]
 	layoutFig = plt.imshow(faceimg, zorder=0, extent=[-0.30, -0.09, 0.18, 0.40])
@@ -127,7 +131,57 @@ def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int):
 	sl_minY.on_changed(updateLims)
 	sl_maxY.on_changed(updateLims)
 
+	# Picker for picking initial points
+	coordList = plt.ginput(n=usrLabelCount, show_clicks =True)
+	# fig.canvas.mpl_connect('pick_event', lambda event:
+	#  onpick(event, xArray= xfdata, yArray= yfdata, zArray= zfdata)
+	#  )
+
 	plt.show()
+	for elem in coordList:
+		listForCoords.append(list(elem))
+
+# Function to plot Dict data in 3D
+def PlotDict3D(markerDict: dict = None):
+	markerCount = len(markerDict.keys())
+
+	# Data in X Dim
+	xdata = np.array(markerDict['marker1'][:,0])
+	for i in range(2, markerCount+1):
+		xdata = np.concatenate((xdata,markerDict['marker{}'.format(i)][:,0]),axis=0)
+	# Data in Y Dim
+	ydata = np.array(markerDict['marker1'][:,1])
+	for i in range(2, markerCount+1):
+		ydata = np.concatenate((ydata,markerDict['marker{}'.format(i)][:,1]),axis=0)
+	# Data in Z Dim
+	zdata = np.array(markerDict['marker1'][:,2])
+	for i in range(2, markerCount+1):
+		zdata = np.concatenate((zdata,markerDict['marker{}'.format(i)][:,2]),axis=0)
+
+	ax = plt.axes(projection='3d')
+	ax.scatter3D(xdata, ydata, zdata, c=zdata, cmap='plasma')
+	ax.set_xlabel('x')
+	ax.set_ylabel('y')
+	ax.set_zlabel('z')
+	# Z+ pointing into screen | X- pointing to right screen border
+	plt.show()
+
+# def onpick(event, xArray, yArray, zArray, label: string, storageDict: dict):
+#         ind = event.ind
+#         print('Picked point at coordinates:', ind, xArray[ind], yArray[ind], zArray[ind])
+
+# Function to display a pop-up window with labels ordered for reference
+def DisplayLabelsWindow(labelsList: list = None, labelCount: int = None):
+	if labelsList is None:
+		Exception("No list to display")
+	else:
+		lblWin = Toplevel()
+		lblWin.title("Labels for reference")
+
+		for i in range(labelCount):
+			textToDisplay = str("{}".format(i+1) + ". " + labelsList[i])
+			lblLabel = Label(lblWin, text=textToDisplay)
+			lblLabel.pack(padx=150)
 
 # Function to select file on button press, wintitle is a Str and winfiletype is a tuple on format ("Title", "*.extension"),("Title2", "*.extension2")
 def File_selection(filenameVar: StringVar, wintitle: str, winfiletype):
@@ -138,24 +192,27 @@ def File_selection(filenameVar: StringVar, wintitle: str, winfiletype):
 	except:
 		print("No file selected")
 
-def LabelFirstFrame():
-	pass
-
 # Function to transform a list of TKinter entries to a StringVar of comma separated strings
 def ListToStringVar(listOfEntries: list, passStringVar: StringVar):
 	stringList=[]
+	entryCounter = 1
+	print("List of Labels")
 
 	for entry in listOfEntries:
 		stringList.append(str(entry.get()))
+
+		print(str(entryCounter) + ". " + str(entry.get()) +"\n")
+		entryCounter+=1
 	
 	stringComma = ','.join(stringList)
 	# to modify external variable in TKinter
 	passStringVar.set(stringComma)
 
 # Function to pass comma separated string to a list of strings
-def CsStringToStringList(commaSepString: string):
+def CsStringToStringList(commaSepString: str):
 	return commaSepString.split(",")
 
+# Function to transform a list of strings to a single string separating each original object with a newline
 def StringListToNewLineString(stringList: list):
 	nlString = ''
 
@@ -164,6 +221,7 @@ def StringListToNewLineString(stringList: list):
 	
 	return nlString
 
+# Function to display warning message | Warning there are less markers in the data than there are labels
 def NotEnoughMarkerData():
 	warningWin = Toplevel()
 	warningWin.title("WARNING!")
@@ -171,3 +229,58 @@ def NotEnoughMarkerData():
 	myLabel = Label(warningWin, text="MARKER COUNT INSUFFICENT \n CHECK DATA FILE AND/OR LABEL COUNT")
 	myLabel.pack()
 	return None
+
+
+# Function to compare XY points to XYZ points proyected to XY in distance:
+def From2DTo3D(xyPoints: list, xyzPoints: list):
+	# 2d Array needs to have just as many elements as the 3D Array
+	labelCount = len(xyPoints)
+	markerCount = len(xyzPoints)
+	if (labelCount > markerCount):
+		print("More Labels than markers in data")
+		return None
+	
+	resultList = []
+	
+	for i in range(labelCount):
+		minDist = int(sys.maxsize)
+		resInd = int()
+		for j in range(markerCount):
+			activeDist = EucDist(point1= [ xyPoints[i][0], xyPoints[i][1] ] ,point2= [ xyzPoints[j][0], xyzPoints[j][1] ])
+			if(minDist > activeDist):
+				minDist = activeDist
+				resInd = j
+		
+		resultList.append(xyzPoints[resInd])
+
+	# print(resultList)
+	return resultList
+
+# Function to calculate distance in 2D points
+def EucDist(point1=None, point2=None):
+	point1 = np.array(point1)
+	point2 = np.array(point2)
+
+	dist = np.linalg.norm(point1 - point2)
+
+	return dist
+
+# Function to transform the Dictionary way of storing initial marker position into a 2 dimensional np.array (matrix)
+# with row= marker and column= x/y/z
+def DictToInitPosList(dictOfMarkers: dict = None):
+
+	markerCount = len(dictOfMarkers.keys())
+	keylist = list(dictOfMarkers.keys())
+	
+	# Pass the marker lists into a list of their initial positions
+	# as of Python 3.7 and newer Dicts are order-perserving
+	completeList = []
+	for key in dictOfMarkers:
+		activeMarkerInitList = dictOfMarkers[key][0,:].tolist()
+		completeList.append(activeMarkerInitList)
+	
+	# remove zero-ed and nan elements
+	initialPosList = [s for s in completeList if np.isnan(np.sum(s)) == False]
+
+	return initialPosList
+

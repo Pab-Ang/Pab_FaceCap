@@ -7,7 +7,7 @@ from tkinter import *
 from tkinter import filedialog
 
 #Label input pop-up window
-def LabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
+def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
    entryList = []
    popWin = Toplevel()
    popWin.title("Naming Labels")
@@ -87,57 +87,50 @@ Entry(userWindow, textvariable=usrMarkerCount).grid(column= 1, row=3)
 labelStringVar = StringVar()
 initialLabelsBtn = Button(userWindow, text='Initialize Labels')
 initialLabelsBtn.config(command =lambda:
-   LabelsWindow(usrLabelCount= int(usrMarkerCount.get()),StringVarToPass= labelStringVar)
+   InputLabelsWindow(usrLabelCount= int(usrMarkerCount.get()),StringVarToPass= labelStringVar)
    )
 initialLabelsBtn.grid(column = 1, row = 4)
 
+initialUsrCoords = []
 initialPlotBtn = Button(userWindow, text='Initialize Label coordinates')
 initialPlotBtn.config(command =lambda:
    Fn.PlotInitialLayout(
       dataFilePath= dataFileName.get(),
       layoutPath= layoutFilePath.get(),
-      usrLabelCount = usrMarkerCount.get()
+      usrLabelCount = usrMarkerCount.get(),
+      listOfLabels = Fn.CsStringToStringList(labelStringVar.get()),
+      listForCoords = initialUsrCoords
       )
    )
 initialPlotBtn.grid(column = 1, row = 5)
 
 userWindow.mainloop()
+# --------------------------------------------------------------------------------------------------------------
 preMarkerDict = Fn.PrepareData(Path(dataFileName.get()))
+# print(preMarkerDict)
 # print('\n Marker Arrays')    
 # for key in preMarkerDict:
 #    print(key)
 #    print(preMarkerDict[key])
 
+print('\n',"Initial Marker Positions")
+firstCoords = Fn.DictToInitPosList(dictOfMarkers = preMarkerDict)
+
 preMarkerCount = len(preMarkerDict.keys())
 print("User Marker Count",usrMarkerCount.get())
-labelList = Fn.CsStringToStringList(labelStringVar.get())
-for x in range(usrMarkerCount.get()):
-   print('{}'.format(x+1) + '.' + labelList[x] +'\n')
+# labelList = Fn.CsStringToStringList(labelStringVar.get())
+# for x in range(usrMarkerCount.get()):
+#    print('{}'.format(x+1) + '.' + labelList[x] +'\n')
 
 #Eucledian Distance between marker in different frames
 point1 = preMarkerDict['marker1'][0,:]
 point2 = preMarkerDict['marker1'][1,:]
 dist = np.linalg.norm(point1 - point2)
 
-# ------------------------------~CODE TO PLOT DATA~-------------------------------------
+initialUsrCoordCount = len(initialUsrCoords)
+print("USER INPUT COORDINATES", "| Count:", initialUsrCoordCount, '\n')
+for i in initialUsrCoords: print(initialUsrCoords)
 
-# Data in X Dim
-xdata = np.array(preMarkerDict['marker1'][:,0])
-for i in range(2, preMarkerCount+1):
-   xdata = np.concatenate((xdata,preMarkerDict['marker{}'.format(i)][:,0]),axis=0)
-# Data in Y Dim
-ydata = np.array(preMarkerDict['marker1'][:,1])
-for i in range(2, preMarkerCount+1):
-   ydata = np.concatenate((ydata,preMarkerDict['marker{}'.format(i)][:,1]),axis=0)
-# Data in Z Dim
-zdata = np.array(preMarkerDict['marker1'][:,2])
-for i in range(2, preMarkerCount+1):
-   zdata = np.concatenate((zdata,preMarkerDict['marker{}'.format(i)][:,2]),axis=0)
-
-# ax = plt.axes(projection='3d')
-# ax.scatter3D(xfdata, yfdata, zfdata, c=zfdata, cmap='plasma')
-# ax.set_xlabel('x')
-# ax.set_ylabel('y')
-# ax.set_zlabel('z')
-# # Z+ pointing into screen | X- pointing to right screen border
-# plt.show()
+print( '\n', "Initial Coordinates in order: \n")
+orderedList = Fn.From2DTo3D(xyPoints= initialUsrCoords, xyzPoints= firstCoords)
+for elem in orderedList: print(elem)
