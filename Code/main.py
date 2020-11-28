@@ -24,11 +24,12 @@ def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
       #Row Entry creation loop
       for y in range(winRowCount):
          #Column Entry creation loop
-         for x in range(winColumnCount):
+         for x in range(1,2*winColumnCount,2):
             if(entryCounter >= usrLabelCount):
                break
+            Label(popWin, text="{}.".format(entryCounter+1)).grid(row=y, column=x-1, pady=0, padx=0)
             myEntry = Entry(popWin)
-            myEntry.grid(row=y, column=x, pady=20, padx=5)
+            myEntry.grid(row=y, column=x, pady=5, padx=5)
             entryList.append(myEntry)
 
             entryCounter+=1
@@ -36,7 +37,7 @@ def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
       passListBtn = Button(popWin, text='Set Labels and Continue', command=lambda: 
          Fn.ListToStringVar(listOfEntries= entryList, passStringVar= StringVarToPass)
          )
-      passListBtn.grid(row= winRowCount +1, column= 0, pady=20)
+      passListBtn.grid(row= winRowCount +1, column= 0, pady=10)
 
 
    else:
@@ -46,11 +47,12 @@ def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
       #Row Entry creation loop
       for y in range(winRowCount):
          #Column Entry creation loop
-         for x in range(winColumnCount):
+         for x in range(1,2*winColumnCount,2):
             if(entryCounter >= usrLabelCount):
                break
+            Label(popWin, text="{}.".format(entryCounter+1)).grid(row=y, column=x-1, pady=0, padx=0)
             myEntry = Entry(popWin)
-            myEntry.grid(row=y, column=x, pady=20, padx=5)
+            myEntry.grid(row=y, column=x, pady=5, padx=5)
             entryList.append(myEntry)
 
             entryCounter+=1
@@ -58,7 +60,7 @@ def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
       passListBtn = Button(popWin, text='Set Labels and Continue', command=lambda: 
          Fn.ListToStringVar(listOfEntries= entryList, passStringVar= StringVarToPass)
          )
-      passListBtn.grid(row= winRowCount +1, column= 0, pady=20)
+      passListBtn.grid(row= winRowCount +1, column= 0, pady=10)
 
 userWindow = Tk()
 userWindow.title('FaceCap Auto-Label')
@@ -129,8 +131,18 @@ dist = np.linalg.norm(point1 - point2)
 
 initialUsrCoordCount = len(initialUsrCoords)
 print("USER INPUT COORDINATES", "| Count:", initialUsrCoordCount, '\n')
-for i in initialUsrCoords: print(initialUsrCoords)
+for coord in initialUsrCoords: print(coord)
 
 print( '\n', "Initial Coordinates in order: \n")
 orderedList = Fn.From2DTo3D(xyPoints= initialUsrCoords, xyzPoints= firstCoords)
 for elem in orderedList: print(elem)
+
+# ordered data
+usrLabelList = Fn.CsStringToStringList(labelStringVar.get())
+# ordered frame 2 data
+myFrameList = list()
+for key in preMarkerDict:
+   myFrameList.append(list(preMarkerDict[key][1,:]))
+# print('Check Frame Data: \n', myFrameList, '\n')
+
+Fn.FrameHungarianMatching(lastFrameList = orderedList, activeFrameList = myFrameList, labelVertex = usrLabelList)

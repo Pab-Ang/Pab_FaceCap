@@ -173,7 +173,7 @@ def PlotDict3D(markerDict: dict = None):
 # Function to display a pop-up window with labels ordered for reference
 def DisplayLabelsWindow(labelsList: list = None, labelCount: int = None):
 	if labelsList is None:
-		Exception("No list to display")
+		Exception("No label list to display")
 	else:
 		lblWin = Toplevel()
 		lblWin.title("Labels for reference")
@@ -284,3 +284,50 @@ def DictToInitPosList(dictOfMarkers: dict = None):
 
 	return initialPosList
 
+# Function that takes two lists of coordinates each representing a frame, and matches them with labels using Hungarian Algorithm
+# (WARNING: this func adapts the coordinates' format and matches it to the last frame, 
+# last frame list MUST be in the same order as the label list/vertexs)
+def FrameHungarianMatching(lastFrameList: list = None, activeFrameList: list = None, labelVertex: list = None):
+	markerCount = len(activeFrameList)
+	labelCount = len(labelVertex)
+
+	markerVertex = activeFrameList
+	
+	hungEntryDict = {}
+	# making the new dict to be used with the hungarian algorithm matching func
+	# the Last Frame Coordinate list HAS to be matched and ordered already
+	for i in range(markerCount):
+		# create dict key for label vertex
+		if i < labelCount:
+			hungEntryDict[str(labelVertex[i])] = {}
+		# create dummies for extra marker spaces
+		elif labelCount <= i <= markerCount:
+			hungEntryDict['dummy{}'.format(i)] = {}
+		# loop to fill with a dict of the marker vertex and the weight function of 
+		for j in range(markerCount):
+			# dummy labels are non important
+			if i >= labelCount:
+				hungEntryDict['dummy{}'.format(i)]['{}'.format(j)] = int(100*np.sum(max(lastFrameList)))
+			# nan values mean these coordinates aren't for this frame
+			elif np.isnan(np.sum(activeFrameList[j])):
+				hungEntryDict[str(labelVertex[i])]['{}'.format(j)] = int(100*np.sum(max(lastFrameList)))
+			# The weigth of the match is the eucledian distance between the last frame's point and the new frame's one
+			else:
+				hungEntryDict[str(labelVertex[i])]['{}'.format(j)] = EucDist(
+					point1= lastFrameList[i],
+					point2= [markerVertex[j][0], markerVertex[j][1], markerVertex[j][2]]
+				)
+	
+	hungMatchedList = algorithm.find_matching(hungEntryDict, matching_type='min', return_type='list')
+	# print('Matched List: \n', hungMatchedList)
+
+	matchedCoords = list()
+	for item in hungMatchedList:
+		matchedCoords.append( ( item[0][0], markerVertex[int(item[0][1])] ) )
+	
+	print('Matched Coords: \n', matchedCoords)
+	return matchedCoords
+
+# Function to run the matching algorithm to the marker dict frame by frame
+def MarkerDictHungMatch(dictMarkersFull: dict = None, labelList: list = None, initialCoords: list = None):
+	frameCount = len(dictMarkersFull['marker1'])
