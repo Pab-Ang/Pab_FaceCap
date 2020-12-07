@@ -429,11 +429,11 @@ def MarkerDictHungMatch(dataFilePath: str  = None, labelList: list = None, usrCo
 
 	firstCoords = DictToInitPosList(dictOfMarkers = dictMarkersFull)
 	initialCoords = From2DTo3D(xyPoints= usrCoords, xyzPoints= firstCoords)
-	print('InitialCoordCount: ', len(initialCoords), '\n')
+	# print('InitialCoordCount: ', len(initialCoords), '\n')
 
 	frameCount = len(dictMarkersFull['marker1'])
 	labelCount = len(labelList)
-	print('Labelcount: ', labelCount, '\n')
+	# print('Labelcount: ', labelCount, '\n')
 	markerCount = len(dictMarkersFull.keys())
 
 	# initialize the result dict with the initial coords with the labels as keys
