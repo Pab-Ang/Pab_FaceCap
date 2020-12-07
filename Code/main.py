@@ -52,18 +52,23 @@ initialPlotBtn.grid(column = 1, row = 5)
 
 userWindow.mainloop()
 # --------------------------------------------------------------------------------------------------------------
-# print(preMarkerDict)
-# print('\n Marker Arrays')    
-# for key in preMarkerDict:
-#    print(key)
-#    print(preMarkerDict[key])
-
-# preMarkerCount = len(preMarkerDict.keys())
-print("User Marker Count",usrMarkerCount.get())
-# labelList = Fn.CsStringToStringList(labelStringVar.get())
-# for x in range(usrMarkerCount.get()):
-#    print('{}'.format(x+1) + '.' + labelList[x] +'\n')
 
 initialUsrCoordCount = len(initialUsrCoords)
 print("USER INPUT COORDINATES", "| Count:", initialUsrCoordCount, '\n')
 for coord in initialUsrCoords: print(coord)
+
+# print( '\n', "Initial Coordinates in order: \n")
+# orderedList = Fn.From2DTo3D(xyPoints= initialUsrCoords, xyzPoints= firstCoords)
+# for elem in orderedList: print(elem)
+
+# ordered data
+usrLabelList = Fn.CsStringToStringList(labelStringVar.get())
+
+resultFinal = Fn.MarkerDictHungMatch(dataFilePath =dataFileName.get(), labelList=usrLabelList, usrCoords= initialUsrCoords)
+resultFinalDF = pd.DataFrame(resultFinal)
+print('Resultado Final: \n', resultFinalDF)
+
+# saveWin = Tk()
+# saveWin.title('Save As')
+export_file_path = filedialog.asksaveasfilename(title= 'Save As', initialdir= Path.cwd(), defaultextension='.csv', filetype=[("CSV File", "*.csv")])
+resultFinalDF.to_csv(export_file_path, index = False, header=True)
