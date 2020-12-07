@@ -55,9 +55,65 @@ def PrepareData(sessionFilePath):
 		markerDict['marker{}'.format(currentMarkerIndex)] = activeMarker
 	return markerDict
 
+#Label input pop-up window
+def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
+   entryList = []
+   popWin = Toplevel()
+   popWin.title("Naming Labels")
+   
+
+   if(usrLabelCount <4):
+      notEnoughLabels = Label(popWin, text= "More than 4 labels are needed\n Close Window and resume")
+      notEnoughLabels.pack(pady=15,padx=10)
+   #dimensions for the window change if even or odd number of labels
+   elif (usrLabelCount % 2 == 0):
+      entryCounter=0
+      winColumnCount = int(4)
+      winRowCount = int(np.ceil(usrLabelCount/winColumnCount))
+      #Row Entry creation loop
+      for y in range(winRowCount):
+         #Column Entry creation loop
+         for x in range(1,2*winColumnCount,2):
+            if(entryCounter >= usrLabelCount):
+               break
+            Label(popWin, text="{}.".format(entryCounter+1)).grid(row=y, column=x-1, pady=0, padx=0)
+            myEntry = Entry(popWin)
+            myEntry.grid(row=y, column=x, pady=5, padx=5)
+            entryList.append(myEntry)
+
+            entryCounter+=1
+      
+      passListBtn = Button(popWin, text='Set Labels and Continue', command=lambda: 
+         ListToStringVar(listOfEntries= entryList, passStringVar= StringVarToPass)
+         )
+      passListBtn.grid(row= winRowCount +1, column= 0, pady=10)
+
+
+   else:
+      entryCounter=0
+      winColumnCount = int(3)
+      winRowCount = int(np.ceil(usrLabelCount/winColumnCount))
+      #Row Entry creation loop
+      for y in range(winRowCount):
+         #Column Entry creation loop
+         for x in range(1,2*winColumnCount,2):
+            if(entryCounter >= usrLabelCount):
+               break
+            Label(popWin, text="{}.".format(entryCounter+1)).grid(row=y, column=x-1, pady=0, padx=0)
+            myEntry = Entry(popWin)
+            myEntry.grid(row=y, column=x, pady=5, padx=5)
+            entryList.append(myEntry)
+
+            entryCounter+=1
+      
+      passListBtn = Button(popWin, text='Set Labels and Continue', command=lambda: 
+         ListToStringVar(listOfEntries= entryList, passStringVar= StringVarToPass)
+         )
+      passListBtn.grid(row= winRowCount +1, column= 0, pady=10)
+
 # Function to plot in 2D the first frame of FaceCap Data with a reference layout image
 # markerDict in format ['markerN':((X1,Y1,Z1),(X2,Y2,Z2),...), 'markerN+1':((X1,Y1,Z1),(X2,Y2,Z2),...)]
-def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, listOfLabels: list = None, listForCoords: list =None):
+def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, listOfLabels: list = None, listForCoords: list =None, mainWindowRoot: Tk = None):
 
 	DisplayLabelsWindow(labelsList= listOfLabels, labelCount=usrLabelCount)
 
@@ -86,7 +142,7 @@ def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, li
 	for i in range(3, usrLabelCount+1):
 	   zfdata = np.concatenate(( zfdata,[preMarkerDict['marker{}'.format(i)][0,2]]),axis=0)
 
-	print("First X Data: \n", xfdata, "\n \n", "First Y Data: \n", yfdata)
+	# print("First X Data: \n", xfdata, "\n \n", "First Y Data: \n", yfdata)
 	# 2D plot of the first frame data
 	minX = np.amin(xfdata)
 	minY = np.amin(yfdata)
@@ -96,7 +152,7 @@ def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, li
 	# Layout image for reference
 	faceimg = plt.imread(Path(layoutPath))
 
-	#creating subplots to use slider widgets on window
+	#Creating subplots to use slider widgets on window
 	fig, ax = plt.subplots()
 	plt.subplots_adjust(left=0.1, bottom=0.35)
 	plotFigure = plt.scatter(xfdata, yfdata, cmap = 'plasma', picker = usrLabelCount)
@@ -138,8 +194,12 @@ def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, li
 	#  )
 
 	plt.show()
+	resultList = []
 	for elem in coordList:
-		listForCoords.append(list(elem))
+		resultList.append(list(elem))
+	# listForCoords.extend(resultList)
+	listForCoords = resultList[:]
+	return resultList
 
 # Function to plot Dict data in 3D
 def PlotDict3D(markerDict: dict = None):
@@ -279,7 +339,7 @@ def DictToInitPosList(dictOfMarkers: dict = None):
 		activeMarkerInitList = dictOfMarkers[key][0,:].tolist()
 		completeList.append(activeMarkerInitList)
 	
-	# remove zero-ed and nan elements
+	# Remove zero-ed and nan elements
 	initialPosList = [s for s in completeList if np.isnan(np.sum(s)) == False]
 
 	return initialPosList
@@ -292,42 +352,125 @@ def FrameHungarianMatching(lastFrameList: list = None, activeFrameList: list = N
 	labelCount = len(labelVertex)
 
 	markerVertex = activeFrameList
-	
-	hungEntryDict = {}
-	# making the new dict to be used with the hungarian algorithm matching func
-	# the Last Frame Coordinate list HAS to be matched and ordered already
-	for i in range(markerCount):
-		# create dict key for label vertex
-		if i < labelCount:
-			hungEntryDict[str(labelVertex[i])] = {}
-		# create dummies for extra marker spaces
-		elif labelCount <= i <= markerCount:
-			hungEntryDict['dummy{}'.format(i)] = {}
-		# loop to fill with a dict of the marker vertex and the weight function of 
-		for j in range(markerCount):
-			# dummy labels are non important
-			if i >= labelCount:
-				hungEntryDict['dummy{}'.format(i)]['{}'.format(j)] = int(100*np.sum(max(lastFrameList)))
-			# nan values mean these coordinates aren't for this frame
-			elif np.isnan(np.sum(activeFrameList[j])):
-				hungEntryDict[str(labelVertex[i])]['{}'.format(j)] = int(100*np.sum(max(lastFrameList)))
-			# The weigth of the match is the eucledian distance between the last frame's point and the new frame's one
-			else:
-				hungEntryDict[str(labelVertex[i])]['{}'.format(j)] = EucDist(
-					point1= lastFrameList[i],
-					point2= [markerVertex[j][0], markerVertex[j][1], markerVertex[j][2]]
-				)
-	
-	hungMatchedList = algorithm.find_matching(hungEntryDict, matching_type='min', return_type='list')
-	# print('Matched List: \n', hungMatchedList)
+	# dict to store the final matched coords
+	matchedCoords = {}
+	# cleaned marker list without NaNs
+	markerListClean = [list(s) for s in markerVertex if np.isnan(np.sum(s)) == False]
+	cleanMarkerCount = len(markerListClean)
+	# if there are less markers than labels, copy last frame coords
+	if cleanMarkerCount < labelCount:
+		for k in range(labelCount):
+				matchedCoords[labelVertex[k]] = lastFrameList[k]
 
-	matchedCoords = list()
-	for item in hungMatchedList:
-		matchedCoords.append( ( item[0][0], markerVertex[int(item[0][1])] ) )
+	else:
+		hungEntryDict = {}
+		# Making the new dict to be used with the hungarian algorithm matching func
+		# the Last Frame Coordinate list HAS to be matched and ordered already
+		for i in range(markerCount):
+			# Create dict key for label vertex
+			if i < labelCount:
+				hungEntryDict[str(labelVertex[i])] = {}
+			# Create dummies for extra marker spaces
+			elif labelCount <= i <= markerCount:
+				hungEntryDict['dummy{}'.format(i)] = {}
+			# Loop to fill with a dict of the marker vertex and the weight function of 
+			for j in range(markerCount):
+				# Dummy labels are non important
+				if i >= labelCount:
+					hungEntryDict['dummy{}'.format(i)]['{}'.format(j)] = int(100*np.sum(max(lastFrameList)))
+				# NaN values mean these coordinates aren't for this frame
+				elif np.isnan(np.sum(activeFrameList[j])):
+					hungEntryDict[str(labelVertex[i])]['{}'.format(j)] = int(100*np.sum(max(lastFrameList)))
+				# The weigth of the match is the eucledian distance between the last frame's point and the new frame's one
+				else:
+					hungEntryDict[str(labelVertex[i])]['{}'.format(j)] = EucDist(
+						point1= lastFrameList[i],
+						point2= [markerVertex[j][0], markerVertex[j][1], markerVertex[j][2]]
+					)
+		
+		# print('Algorithm Entry \n',hungEntryDict)
+		hungMatchedList = algorithm.find_matching(hungEntryDict, matching_type='min', return_type='list')
+		# print('Matched List: \n', hungMatchedList)
+
+		# If matching fails then assign with costly direct eucledian distance comparisson
+		if type(hungMatchedList) == type(bool()):
+			# If there are equal number of markers and labels use min Euc Dist comparisson
+			if cleanMarkerCount == labelCount:
+				for k in range(labelCount):
+					minDist = int(sys.maxsize)
+					resInd = int()
+					for l in range(labelCount):
+						currentDist = EucDist(
+							point1= lastFrameList[k],
+							point2= [markerVertex[l][0], markerVertex[l][1], markerVertex[l][2]]
+						)
+						if(minDist > currentDist):
+							minDist = currentDist
+							resInd = l
+					matchedCoords[labelVertex[k]] = list(markerVertex[resInd])
+
+			# if there are more or less markers than labels repeat last frame
+			else:
+				for k in labelCount:
+					matchedCoords[labelVertex[k]] = lastFrameList[k]
+
+		# Matching succesful then do this
+		else:
+			for item in hungMatchedList:
+				matchedCoords[item[0][0]] = list(markerVertex[ int(item[0][1]) ])
 	
-	print('Matched Coords: \n', matchedCoords)
+	# print('Matched Coords: \n', matchedCoords)
 	return matchedCoords
 
 # Function to run the matching algorithm to the marker dict frame by frame
-def MarkerDictHungMatch(dictMarkersFull: dict = None, labelList: list = None, initialCoords: list = None):
+def MarkerDictHungMatch(dataFilePath: str  = None, labelList: list = None, usrCoords: list = None, dictToPass: dict = None):
+
+	dictMarkersFull = PrepareData(Path(dataFilePath))
+
+	firstCoords = DictToInitPosList(dictOfMarkers = dictMarkersFull)
+	initialCoords = From2DTo3D(xyPoints= usrCoords, xyzPoints= firstCoords)
+	print('InitialCoordCount: ', len(initialCoords), '\n')
+
 	frameCount = len(dictMarkersFull['marker1'])
+	labelCount = len(labelList)
+	print('Labelcount: ', labelCount, '\n')
+	markerCount = len(dictMarkersFull.keys())
+
+	# initialize the result dict with the initial coords with the labels as keys
+	resultMatchedDict = {}
+	for k in range(labelCount):
+		resultMatchedDict[str(labelList[k]) + 'X'] = list()
+		resultMatchedDict[str(labelList[k]) + 'Y'] = list()
+		resultMatchedDict[str(labelList[k]) + 'Z'] = list()
+
+		resultMatchedDict[str(labelList[k]) + 'X'].append(initialCoords[k][0])
+		resultMatchedDict[str(labelList[k]) + 'Y'].append(initialCoords[k][1])
+		resultMatchedDict[str(labelList[k]) + 'Z'].append(initialCoords[k][2])
+
+
+
+	lastFrameData = initialCoords
+	for i in range(1,frameCount):
+		# making list with current frame coordinates for each marker
+		myFrameList = list()
+		for key in dictMarkersFull:
+   			myFrameList.append(list(dictMarkersFull[key][i,:]))
+		
+		# frame matching function
+		# print("Frame number: ", i, '\n')
+		matchedFrame = FrameHungarianMatching(lastFrameList= lastFrameData, activeFrameList= myFrameList, labelVertex= labelList)
+		
+		# adding the matched values to corresponding label in result dictionary
+		for k in range(labelCount):
+			resultMatchedDict[str(labelList[k]) + 'X'].append(matchedFrame[labelList[k]][0])
+			resultMatchedDict[str(labelList[k]) + 'Y'].append(matchedFrame[labelList[k]][1])
+			resultMatchedDict[str(labelList[k]) + 'Z'].append(matchedFrame[labelList[k]][2])
+		
+		# updating last frame data
+		tempList = list()
+		for labelKey in labelList:
+			tempList.append(matchedFrame[labelKey])
+		lastFrameData = tempList
+	
+	dictToPass = resultMatchedDict
+	return resultMatchedDict
