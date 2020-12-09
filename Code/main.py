@@ -1,3 +1,4 @@
+from numpy.lib.npyio import save
 import myFuncs as Fn
 from pathlib import Path
 import pandas as pd
@@ -27,7 +28,7 @@ layoutFileBtn.config(command=lambda:
 layoutFileBtn.grid(column = 1, row = 2)
 
 usrMarkerCount = IntVar()
-Label(userWindow, text='Enter how many markers you are using:', font=('bold', 10)).grid(column= 0, row= 3)
+Label(userWindow, text='Enter how many labels you are using:', font=('bold', 10)).grid(column= 0, row= 3)
 Entry(userWindow, textvariable=usrMarkerCount).grid(column= 1, row=3)
 
 labelStringVar = StringVar()

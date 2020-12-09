@@ -55,6 +55,122 @@ def PrepareData(sessionFilePath):
 		markerDict['marker{}'.format(currentMarkerIndex)] = activeMarker
 	return markerDict
 
+# Function to plot in 2D the first frame of FaceCap Data with a reference layout image
+# markerDict in format ['markerN':((X1,Y1,Z1),(X2,Y2,Z2),...), 'markerN+1':((X1,Y1,Z1),(X2,Y2,Z2),...)]
+def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, listOfLabels: list = None, listForCoords: list =None):
+
+	DisplayLabelsWindow(labelsList= listOfLabels, labelCount=usrLabelCount)
+
+	preMarkerDict = PrepareData(Path(dataFilePath))
+	# print('\n Marker Arrays')    
+	# for key in preMarkerDict:
+	#    print(key)
+	#    print(preMarkerDict[key])
+
+	preMarkerCount = len(preMarkerDict.keys())
+
+	if(preMarkerCount < usrLabelCount):
+		NotEnoughMarkerData()
+		return None
+
+	# First frame Data in X Dim
+	xfdata = np.array((preMarkerDict['marker1'][0,0], preMarkerDict['marker2'][0,0]))
+	for i in range(3, usrLabelCount+1):
+   		xfdata = np.concatenate(( xfdata,[preMarkerDict['marker{}'.format(i)][0,0]]),axis=0)
+	#First frame Data in Y Dim
+	yfdata = np.array((preMarkerDict['marker1'][0,1], preMarkerDict['marker2'][0,1]))
+	for i in range(3, usrLabelCount+1):
+		yfdata = np.concatenate(( yfdata,[preMarkerDict['marker{}'.format(i)][0,1]]),axis=0)
+	#First Frame Data in Z Dim
+	zfdata = np.array((preMarkerDict['marker1'][0,2], preMarkerDict['marker2'][0,2]))
+	for i in range(3, usrLabelCount+1):
+	   zfdata = np.concatenate(( zfdata,[preMarkerDict['marker{}'.format(i)][0,2]]),axis=0)
+
+	# print("First X Data: \n", xfdata, "\n \n", "First Y Data: \n", yfdata)
+	# 2D plot of the first frame data
+	minX = np.amin(xfdata)
+	minY = np.amin(yfdata)
+	maxX = np.amax(xfdata)
+	maxY = np.amax(yfdata)
+	print("Min X | Max X | Min Y | Max Y \n" , minX, maxX, minY, maxY)
+	# Layout image for reference
+	faceimg = plt.imread(Path(layoutPath))
+
+	#creating subplots to use slider widgets on window
+	fig, ax = plt.subplots()
+	plt.subplots_adjust(left=0.1, bottom=0.35)
+	plotFigure = plt.scatter(xfdata, yfdata, cmap = 'plasma', picker = usrLabelCount)
+	# extent in data units in order imshow(img, zorder=0, extent=[left, right, bottom, top])
+	# Default testing values [-0.30, -0.09, 0.18, 0.40]
+	layoutFig = plt.imshow(faceimg, zorder=0, extent=[-0.30, -0.09, 0.18, 0.40])
+	plt.xlabel('X')
+	plt.ylabel('Y')
+
+	minX_Slider = plt.axes([0.25, 0.1, 0.65, 0.03])
+	sl_minX = Slider(minX_Slider, 'IMG Left Lim', valmin=1.5*minX, valmax=0.5*minX, valinit=-0.30)
+
+	maxX_Slider = plt.axes([0.25, 0.15, 0.65, 0.03])
+	sl_maxX = Slider(maxX_Slider, 'IMG Right Lim', valmin=1.5*maxX, valmax=0.5*maxX, valinit=-0.09)
+
+	minY_Slider = plt.axes([0.25, 0.2, 0.65, 0.03])
+	sl_minY = Slider(minY_Slider, 'IMG Bottom Lim', valmin=0.5*minY, valmax=1.5*minY, valinit=0.18)
+
+	maxY_Slider = plt.axes([0.25, 0.25, 0.65, 0.03])
+	sl_maxY = Slider(maxY_Slider, 'IMG Top Lim', valmin=0.5*maxY, valmax=1.5*maxY, valinit=0.40)
+
+	def updateLims(val):
+		leftLim = sl_minX.val
+		rightLim = sl_maxX.val
+		bottomLim = sl_minY.val
+		topLim = sl_maxY.val
+
+		layoutFig.set_extent([leftLim, rightLim, bottomLim, topLim])
+	
+	sl_minX.on_changed(updateLims)
+	sl_maxX.on_changed(updateLims)
+	sl_minY.on_changed(updateLims)
+	sl_maxY.on_changed(updateLims)
+
+	# Picker for picking initial points
+	coordList = plt.ginput(n=usrLabelCount, show_clicks =True)
+	# fig.canvas.mpl_connect('pick_event', lambda event:
+	#  onpick(event, xArray= xfdata, yArray= yfdata, zArray= zfdata)
+	#  )
+
+	for elem in coordList:
+		listForCoords.append(list(elem))
+	plt.show()
+	return listForCoords
+
+# Function to plot Dict data in 3D
+def PlotDict3D(markerDict: dict = None):
+	markerCount = len(markerDict.keys())
+
+	# Data in X Dim
+	xdata = np.array(markerDict['marker1'][:,0])
+	for i in range(2, markerCount+1):
+		xdata = np.concatenate((xdata,markerDict['marker{}'.format(i)][:,0]),axis=0)
+	# Data in Y Dim
+	ydata = np.array(markerDict['marker1'][:,1])
+	for i in range(2, markerCount+1):
+		ydata = np.concatenate((ydata,markerDict['marker{}'.format(i)][:,1]),axis=0)
+	# Data in Z Dim
+	zdata = np.array(markerDict['marker1'][:,2])
+	for i in range(2, markerCount+1):
+		zdata = np.concatenate((zdata,markerDict['marker{}'.format(i)][:,2]),axis=0)
+
+	ax = plt.axes(projection='3d')
+	ax.scatter3D(xdata, ydata, zdata, c=zdata, cmap='plasma')
+	ax.set_xlabel('x')
+	ax.set_ylabel('y')
+	ax.set_zlabel('z')
+	# Z+ pointing into screen | X- pointing to right screen border
+	plt.show()
+
+# def onpick(event, xArray, yArray, zArray, label: string, storageDict: dict):
+#         ind = event.ind
+#         print('Picked point at coordinates:', ind, xArray[ind], yArray[ind], zArray[ind])
+
 #Label input pop-up window
 def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
    entryList = []
@@ -111,125 +227,6 @@ def InputLabelsWindow(usrLabelCount: int, StringVarToPass: StringVar):
          )
       passListBtn.grid(row= winRowCount +1, column= 0, pady=10)
 
-# Function to plot in 2D the first frame of FaceCap Data with a reference layout image
-# markerDict in format ['markerN':((X1,Y1,Z1),(X2,Y2,Z2),...), 'markerN+1':((X1,Y1,Z1),(X2,Y2,Z2),...)]
-def PlotInitialLayout(dataFilePath: str, layoutPath: str, usrLabelCount: int, listOfLabels: list = None, listForCoords: list =None, mainWindowRoot: Tk = None):
-
-	DisplayLabelsWindow(labelsList= listOfLabels, labelCount=usrLabelCount)
-
-	preMarkerDict = PrepareData(Path(dataFilePath))
-	# print('\n Marker Arrays')    
-	# for key in preMarkerDict:
-	#    print(key)
-	#    print(preMarkerDict[key])
-
-	preMarkerCount = len(preMarkerDict.keys())
-
-	if(preMarkerCount < usrLabelCount):
-		NotEnoughMarkerData()
-		return None
-
-	# First frame Data in X Dim
-	xfdata = np.array((preMarkerDict['marker1'][0,0], preMarkerDict['marker2'][0,0]))
-	for i in range(3, usrLabelCount+1):
-   		xfdata = np.concatenate(( xfdata,[preMarkerDict['marker{}'.format(i)][0,0]]),axis=0)
-	#First frame Data in Y Dim
-	yfdata = np.array((preMarkerDict['marker1'][0,1], preMarkerDict['marker2'][0,1]))
-	for i in range(3, usrLabelCount+1):
-		yfdata = np.concatenate(( yfdata,[preMarkerDict['marker{}'.format(i)][0,1]]),axis=0)
-	#First Frame Data in Z Dim
-	zfdata = np.array((preMarkerDict['marker1'][0,2], preMarkerDict['marker2'][0,2]))
-	for i in range(3, usrLabelCount+1):
-	   zfdata = np.concatenate(( zfdata,[preMarkerDict['marker{}'.format(i)][0,2]]),axis=0)
-
-	# print("First X Data: \n", xfdata, "\n \n", "First Y Data: \n", yfdata)
-	# 2D plot of the first frame data
-	minX = np.amin(xfdata)
-	minY = np.amin(yfdata)
-	maxX = np.amax(xfdata)
-	maxY = np.amax(yfdata)
-	print("Min X | Max X | Min Y | Max Y \n" , minX, maxX, minY, maxY)
-	# Layout image for reference
-	faceimg = plt.imread(Path(layoutPath))
-
-	#Creating subplots to use slider widgets on window
-	fig, ax = plt.subplots()
-	plt.subplots_adjust(left=0.1, bottom=0.35)
-	plotFigure = plt.scatter(xfdata, yfdata, cmap = 'plasma', picker = usrLabelCount)
-	# extent in data units in order imshow(img, zorder=0, extent=[left, right, bottom, top])
-	# Default testing values [-0.30, -0.09, 0.18, 0.40]
-	layoutFig = plt.imshow(faceimg, zorder=0, extent=[-0.30, -0.09, 0.18, 0.40])
-	plt.xlabel('X')
-	plt.ylabel('Y')
-
-	minX_Slider = plt.axes([0.25, 0.1, 0.65, 0.03])
-	sl_minX = Slider(minX_Slider, 'IMG Left Lim', valmin=1.5*minX, valmax=0.5*minX, valinit=-0.30)
-
-	maxX_Slider = plt.axes([0.25, 0.15, 0.65, 0.03])
-	sl_maxX = Slider(maxX_Slider, 'IMG Right Lim', valmin=1.5*maxX, valmax=0.5*maxX, valinit=-0.09)
-
-	minY_Slider = plt.axes([0.25, 0.2, 0.65, 0.03])
-	sl_minY = Slider(minY_Slider, 'IMG Bottom Lim', valmin=0.5*minY, valmax=1.5*minY, valinit=0.18)
-
-	maxY_Slider = plt.axes([0.25, 0.25, 0.65, 0.03])
-	sl_maxY = Slider(maxY_Slider, 'IMG Top Lim', valmin=0.5*maxY, valmax=1.5*maxY, valinit=0.40)
-
-	def updateLims(val):
-		leftLim = sl_minX.val
-		rightLim = sl_maxX.val
-		bottomLim = sl_minY.val
-		topLim = sl_maxY.val
-
-		layoutFig.set_extent([leftLim, rightLim, bottomLim, topLim])
-	
-	sl_minX.on_changed(updateLims)
-	sl_maxX.on_changed(updateLims)
-	sl_minY.on_changed(updateLims)
-	sl_maxY.on_changed(updateLims)
-
-	# Picker for picking initial points
-	coordList = plt.ginput(n=usrLabelCount, show_clicks =True)
-	# fig.canvas.mpl_connect('pick_event', lambda event:
-	#  onpick(event, xArray= xfdata, yArray= yfdata, zArray= zfdata)
-	#  )
-
-	plt.show()
-	resultList = []
-	for elem in coordList:
-		resultList.append(list(elem))
-	# listForCoords.extend(resultList)
-	listForCoords = resultList[:]
-	return resultList
-
-# Function to plot Dict data in 3D
-def PlotDict3D(markerDict: dict = None):
-	markerCount = len(markerDict.keys())
-
-	# Data in X Dim
-	xdata = np.array(markerDict['marker1'][:,0])
-	for i in range(2, markerCount+1):
-		xdata = np.concatenate((xdata,markerDict['marker{}'.format(i)][:,0]),axis=0)
-	# Data in Y Dim
-	ydata = np.array(markerDict['marker1'][:,1])
-	for i in range(2, markerCount+1):
-		ydata = np.concatenate((ydata,markerDict['marker{}'.format(i)][:,1]),axis=0)
-	# Data in Z Dim
-	zdata = np.array(markerDict['marker1'][:,2])
-	for i in range(2, markerCount+1):
-		zdata = np.concatenate((zdata,markerDict['marker{}'.format(i)][:,2]),axis=0)
-
-	ax = plt.axes(projection='3d')
-	ax.scatter3D(xdata, ydata, zdata, c=zdata, cmap='plasma')
-	ax.set_xlabel('x')
-	ax.set_ylabel('y')
-	ax.set_zlabel('z')
-	# Z+ pointing into screen | X- pointing to right screen border
-	plt.show()
-
-# def onpick(event, xArray, yArray, zArray, label: string, storageDict: dict):
-#         ind = event.ind
-#         print('Picked point at coordinates:', ind, xArray[ind], yArray[ind], zArray[ind])
-
 # Function to display a pop-up window with labels ordered for reference
 def DisplayLabelsWindow(labelsList: list = None, labelCount: int = None):
 	if labelsList is None:
@@ -241,7 +238,7 @@ def DisplayLabelsWindow(labelsList: list = None, labelCount: int = None):
 		for i in range(labelCount):
 			textToDisplay = str("{}".format(i+1) + ". " + labelsList[i])
 			lblLabel = Label(lblWin, text=textToDisplay)
-			lblLabel.pack(padx=150)
+			lblLabel.pack(padx=120)
 
 # Function to select file on button press, wintitle is a Str and winfiletype is a tuple on format ("Title", "*.extension"),("Title2", "*.extension2")
 def File_selection(filenameVar: StringVar, wintitle: str, winfiletype):
@@ -261,7 +258,7 @@ def ListToStringVar(listOfEntries: list, passStringVar: StringVar):
 	for entry in listOfEntries:
 		stringList.append(str(entry.get()))
 
-		print(str(entryCounter) + ". " + str(entry.get()) +"\n")
+		print(str(entryCounter) + ". " + str(entry.get()) )
 		entryCounter+=1
 	
 	stringComma = ','.join(stringList)
@@ -339,7 +336,7 @@ def DictToInitPosList(dictOfMarkers: dict = None):
 		activeMarkerInitList = dictOfMarkers[key][0,:].tolist()
 		completeList.append(activeMarkerInitList)
 	
-	# Remove zero-ed and nan elements
+	# remove zero-ed and nan elements
 	initialPosList = [s for s in completeList if np.isnan(np.sum(s)) == False]
 
 	return initialPosList
@@ -423,7 +420,7 @@ def FrameHungarianMatching(lastFrameList: list = None, activeFrameList: list = N
 	return matchedCoords
 
 # Function to run the matching algorithm to the marker dict frame by frame
-def MarkerDictHungMatch(dataFilePath: str  = None, labelList: list = None, usrCoords: list = None, dictToPass: dict = None):
+def MarkerDictHungMatch(dataFilePath: str  = None, labelList: list = None, usrCoords: list = None):#, dictToPass: dict = None):
 
 	dictMarkersFull = PrepareData(Path(dataFilePath))
 
@@ -446,8 +443,6 @@ def MarkerDictHungMatch(dataFilePath: str  = None, labelList: list = None, usrCo
 		resultMatchedDict[str(labelList[k]) + 'X'].append(initialCoords[k][0])
 		resultMatchedDict[str(labelList[k]) + 'Y'].append(initialCoords[k][1])
 		resultMatchedDict[str(labelList[k]) + 'Z'].append(initialCoords[k][2])
-
-
 
 	lastFrameData = initialCoords
 	for i in range(1,frameCount):
