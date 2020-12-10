@@ -453,6 +453,7 @@ def MarkerDictHungMatch(dataFilePath: str  = None, labelList: list = None, usrCo
 		
 		# frame matching function
 		# print("Frame number: ", i, '\n')
+		# get result from matching the last frame with the unlabelled frame
 		matchedFrame = FrameHungarianMatching(lastFrameList= lastFrameData, activeFrameList= myFrameList, labelVertex= labelList)
 		
 		# adding the matched values to corresponding label in result dictionary
